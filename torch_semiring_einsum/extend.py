@@ -3,10 +3,10 @@ import typing
 
 import torch
 
-from .equation import Equation
+from .equation import Equation, MultiEquation
 
 def semiring_einsum_forward(
-        equation: Equation,
+        equation: typing.Union[Equation, MultiEquation],
         args: typing.Sequence[torch.Tensor],
         block_size: int,
         func: typing.Callable):
@@ -112,6 +112,9 @@ def semiring_einsum_forward(
         ``block_size ** n``.
     :param func: A callback of the form described above.
     """
+    if isinstance(equation, MultiEquation):
+        return tuple(semiring_einsum_forward(sub, args, block_size, func)
+                     for sub in equation.equations)
     equation.validate_sizes(args)
     equation.prepare_for_forward()
 

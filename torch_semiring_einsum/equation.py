@@ -1,4 +1,5 @@
 import itertools
+from typing import Hashable, Sequence
 
 class Equation:
     r"""An einsum equation that has been pre-compiled into some useful data
@@ -60,15 +61,23 @@ class Equation:
                 output_lookup_info = reduce_info.lookup_info.pop()
                 self.reduce_all_to_input.append((reduce_info, output_lookup_info))
 
+
+class MultiEquation(object):
+    def __init__(self, equations: Sequence[Equation]):
+        self.equations = list(equations)
+
 def compile_equation(equation: str) -> Equation:
+    args_str, output_vars = equation.split('->', 1)
+    arg_strs = args_str.split(',')
+    return compile_generic_equation(arg_strs, output_vars, repr=equation)
+
+def compile_generic_equation(arg_strs: Sequence[Hashable], output_vars: Sequence[Hashable], repr: str = None) -> Equation:
     r"""Pre-compile an einsum equation for use with the einsum functions in
     this package.
 
     :param equation: An equation in einsum syntax.
     :return: A pre-compiled equation.
     """
-    args_str, output_vars = equation.split('->', 1)
-    arg_strs = args_str.split(',')
     char_to_int = {}
     int_to_arg_dims = []
     args_dims = []
@@ -84,8 +93,10 @@ def compile_equation(equation: str) -> Equation:
         args_dims.append(arg_dims)
     output_dims = [char_to_int[c] for c in output_vars]
     num_variables = len(char_to_int)
+    if repr is None:
+        repr = f"{arg_strs}->{output_vars}"
     return Equation(
-        equation,
+        repr,
         int_to_arg_dims,
         args_dims,
         output_dims,
