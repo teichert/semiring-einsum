@@ -16,6 +16,7 @@ from torch_semiring_einsum import (
 
 EQUATION_STR = 'abce,abde,abdf->acd'
 A, B, C, D, E, F = 2, 3, 5, 7, 11, 13
+_A, _B, _C, _E, _D, _F = range(6)
 SIZES = [(A, B, C, E), (A, B, D, E), (A, B, D, F)]
 OUTPUT_SIZE = (A, C, D)
 
@@ -25,6 +26,15 @@ class TestCompileEquation(unittest.TestCase):
         equation = compile_equation(EQUATION_STR)
         equation.prepare_for_forward()
         equation.prepare_for_backward()
+
+    def test_compile_equation2(self):
+        equation = compile_equation(EQUATION_STR)
+        assert equation.source == EQUATION_STR
+        # TODO: finish this
+        # assert equation.variable_locations == [[(0, 0)]]
+        assert equation.input_variables == [[_A,_B,_C,_E], [_A,_B,_D,_E], [_A,_B,_D,_F]]
+        assert equation.output_variables == [_A,_C,_D]
+        assert equation.num_variables == 6
 
 class TestSemiringEinsum(unittest.TestCase):
 
