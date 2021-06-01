@@ -112,9 +112,6 @@ def semiring_einsum_forward(
         ``block_size ** n``.
     :param func: A callback of the form described above.
     """
-    if isinstance(equation, MultiEquation):
-        return tuple(semiring_einsum_forward(sub, args, block_size, func)
-                     for sub in equation.equations)
     equation.validate_sizes(args)
     equation.prepare_for_forward()
 
@@ -136,6 +133,10 @@ def semiring_einsum_forward(
 def semiring_einsum_forward_impl(equation, args, block_size, inputs,
         add_in_place, sum_block, multiply_in_place, reduce_info,
         include_indexes):
+    if isinstance(equation, MultiEquation):
+        return tuple(semiring_einsum_forward_impl(sub, args, block_size,
+            add_in_place, sum_block, multiply_in_place, reduce_info,
+            include_indexes) for sub in equation.equations)
     var_ranges = reduce_info.get_ranges(equation, args, block_size)
 
     def generate_terms():

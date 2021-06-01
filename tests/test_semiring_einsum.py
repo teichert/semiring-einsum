@@ -1,4 +1,5 @@
 import math
+from torch_semiring_einsum.equation import compile_generic_equation
 import unittest
 
 import numpy
@@ -19,7 +20,7 @@ EQUATION_INS = [
     ['VarA', 'VarB', 'VarC', 'VarE'],
     ['VarA', 'VarB', 'VarD', 'VarE'],
     ['VarA', 'VarB', 'VarD', 'VarF']]
-EQUATION_OUT = ['VarA', 'VarC', 'VarD']
+EQUATION_OUT = [['VarA', 'VarC', 'VarD']]
 
 A, B, C, D, E, F = 2, 3, 5, 7, 11, 13
 _A, _B, _C, _E, _D, _F = range(6)
@@ -49,7 +50,22 @@ class TestCompileEquation(unittest.TestCase):
         assert equation.num_variables == 6
 
 
-    # def test_compile_equation_no_strings(self):
+    def test_compile_equation_no_strings(self):
+        equation = compile_generic_equation(EQUATION_INS, EQUATION_OUT, repr=EQUATION_STR)
+        assert equation.source == EQUATION_STR
+        # A is in factor 0 as dimension 0, in factor 1 as dimension 1 and so on for A,B,C,E,D,F
+        assert equation.variable_locations == [[(0, 0), (1, 0), (2, 0)], # A
+                                               [(0, 1), (1, 1), (2, 1)], # B
+                                               [(0, 2)], # C
+                                               [(0, 3), (1, 3)], # E
+                                               [(1, 2), (2, 2)], # D
+                                               [(2, 3)] # F
+                                               ]
+        assert equation.input_variables == [[_A,_B,_C,_E], [_A,_B,_D,_E], [_A,_B,_D,_F]]
+        assert equation.output_variables == [_A,_C,_D]
+        assert equation.num_variables == 6
+
+    # def test_compile_equation2(self):
     #     equation = compile_equation(EQUATION_STR)
     #     assert equation.source == EQUATION_STR
     #     # A is in factor 0 as dimension 0, in factor 1 as dimension 1 and so on for A,B,C,E,D,F
@@ -63,21 +79,6 @@ class TestCompileEquation(unittest.TestCase):
     #     assert equation.input_variables == [[_A,_B,_C,_E], [_A,_B,_D,_E], [_A,_B,_D,_F]]
     #     assert equation.output_variables == [_A,_C,_D]
     #     assert equation.num_variables == 6
-
-    def test_compile_equation2(self):
-        equation = compile_equation(EQUATION_STR)
-        assert equation.source == EQUATION_STR
-        # A is in factor 0 as dimension 0, in factor 1 as dimension 1 and so on for A,B,C,E,D,F
-        assert equation.variable_locations == [[(0, 0), (1, 0), (2, 0)], # A
-                                               [(0, 1), (1, 1), (2, 1)], # B
-                                               [(0, 2)], # C
-                                               [(0, 3), (1, 3)], # E
-                                               [(1, 2), (2, 2)], # D
-                                               [(2, 3)] # F
-                                               ]
-        assert equation.input_variables == [[_A,_B,_C,_E], [_A,_B,_D,_E], [_A,_B,_D,_F]]
-        assert equation.output_variables == [_A,_C,_D]
-        assert equation.num_variables == 6
 
 class TestSemiringEinsum(unittest.TestCase):
 

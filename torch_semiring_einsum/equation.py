@@ -1,5 +1,5 @@
 import itertools
-from typing import Hashable, Sequence
+from typing import Hashable, Sequence, Union
 
 class Equation:
     r"""An einsum equation that has been pre-compiled into some useful data
@@ -66,12 +66,14 @@ class MultiEquation(object):
     def __init__(self, equations: Sequence[Equation]):
         self.equations = list(equations)
 
-def compile_equation(equation: str) -> Equation:
-    args_str, output_vars = equation.split('->', 1)
+def compile_equation(equation: str, force_multi: bool = False) -> Equation:
+    args_str, outputs_str = equation.split('->', 1)
     arg_strs = args_str.split(',')
-    return compile_generic_equation(arg_strs, output_vars, repr=equation)
+    out_strs = outputs_str.split(',')
+    return compile_generic_equation(arg_strs, out_strs, repr=equation, force_multi=force_multi)
 
-def compile_generic_equation(arg_strs: Sequence[Hashable], output_vars: Sequence[Hashable], repr: str = None) -> Equation:
+def compile_generic_equation(arg_strs: Sequence[Sequence[Hashable]], out_strs: Sequence[Hashable],
+        repr: str = '', force_multi: bool = False) -> Union[Equation, MultiEquation]:
     r"""Pre-compile an einsum equation for use with the einsum functions in
     this package.
 
@@ -91,16 +93,20 @@ def compile_generic_equation(arg_strs: Sequence[Hashable], output_vars: Sequence
             int_to_arg_dims[dim_int].append((arg_no, dim_no))
             arg_dims.append(dim_int)
         args_dims.append(arg_dims)
-    output_dims = [char_to_int[c] for c in output_vars]
     num_variables = len(char_to_int)
-    if repr is None:
-        repr = f"{arg_strs}->{output_vars}"
-    return Equation(
-        repr,
-        int_to_arg_dims,
-        args_dims,
-        output_dims,
-        num_variables)
+    equations = []
+    for out_str in out_strs:
+        output_dims = [char_to_int[c] for c in out_str]
+        equations.append(Equation(
+            repr,
+            int_to_arg_dims,
+            args_dims,
+            output_dims,
+            num_variables))
+    if len(equations) != 1 or force_multi:
+        return MultiEquation(equations)
+    else:
+        return equations[0]
 
 def get_variables_not_in(variables, excluded):
     added = set()
